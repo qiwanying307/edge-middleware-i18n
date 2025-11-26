@@ -9,18 +9,15 @@ interface Content {
   title: string
   greet: string
   subtitle: string
-  link: string
 }
 
 export default function LocalizedContent() {
   const params = useParams()
-  console.log('params:', params);
   
   const [content, setContent] = useState<Content>({
     title: 'i18n Example',
     greet: 'Hello!, we could not detect your locale so we defaulted to english.',
     subtitle: 'Localized text based on geolocation headers',
-    link: 'See headers documentation'
   })
 
   useEffect(() => {
@@ -31,28 +28,44 @@ export default function LocalizedContent() {
     console.log(`显示本地化内容: ${locale}/${country}`)
 
     // 🎯 定义内容映射
-    const contentMap: Record<string, Omit<Content, 'title' | 'link'>> = {
+    const contentMap: Record<string, Omit<Content, 'link'>> = {
       'CN': {
+        title: '多语言示例',
+        greet: '你好！我们检测到您在中国，已为您显示中文内容。',
+        subtitle: '基于地理位置的智能内容分发'
+      },
+      'HK': {
+        title: '多语言示例',
+        greet: '你好！我们检测到您在中国，已为您显示中文内容。',
+        subtitle: '基于地理位置的智能内容分发'
+      },
+      'TW': {
+        title: '多语言示例',
         greet: '你好！我们检测到您在中国，已为您显示中文内容。',
         subtitle: '基于地理位置的智能内容分发'
       },
       'JP': {
+        title: '多言語サンプル',
         greet: 'こんにちは！日本からのアクセスを検出しました。',
         subtitle: '地理位置ヘッダーに基づくローカライズされたテキスト'
       },
       'US': {
+        title: 'Multilingual Example',
         greet: 'Hello! We detected you are in the United States.',
         subtitle: 'Localized text based on geolocation headers'
       },
       'KR': {
+        title: '다국어 예제',
         greet: '안녕하세요! 한국에서 접속을 감지했습니다.',
         subtitle: '지리적 위치 기반의 지능형 콘텐츠 배포'
       },
       'DE': {
+        title: 'Mehrsprachiges Beispiel',
         greet: 'Hallo! Wir haben erkannt, dass Sie sich in Deutschland befinden.',
         subtitle: 'Intelligente Inhaltsverteilung basierend auf Geolokalisierung'
       },
       'DEFAULT': {
+        title: 'Multilingual Example',
         greet: 'Hello!, we could not detect your locale so we defaulted to english.',
         subtitle: 'Localized text based on geolocation headers'
       }
@@ -64,6 +77,7 @@ export default function LocalizedContent() {
 
     setContent(prev => ({
       ...prev,
+      title: selectedContent.title,
       greet: selectedContent.greet,
       subtitle: selectedContent.subtitle
     }))
@@ -167,9 +181,8 @@ export default function LocalizedContent() {
       <div style={styles.debugCard}>
         <h3>地理位置信息</h3>
         <p>当前路径: /{params.locale}/{params.country}</p>
-        <p>检测到的国家: <strong>{typeof params.country === 'string' ? params.country?.toUpperCase() : ''}</strong></p>
-        <p>语言设置: <strong>{params.locale}</strong></p>
-        <p>📍 这些信息来自 Vercel 的 request.geo 数据</p>
+        <p>当前语言: {params.locale}</p>
+        <p>当前国家: {params.country}</p>
       </div>
     </main>
   )
