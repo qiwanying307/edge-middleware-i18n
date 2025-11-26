@@ -16,8 +16,6 @@ export default function LocalizedContent() {
   const params = useParams()
   console.log('params:', params);
   
-  const searchParams = useSearchParams()
-  const router = useRouter()
   const [content, setContent] = useState<Content>({
     title: 'i18n Example',
     greet: 'Hello!, we could not detect your locale so we defaulted to english.',
@@ -172,22 +170,6 @@ export default function LocalizedContent() {
         <p>检测到的国家: <strong>{typeof params.country === 'string' ? params.country?.toUpperCase() : ''}</strong></p>
         <p>语言设置: <strong>{params.locale}</strong></p>
         <p>📍 这些信息来自 Vercel 的 request.geo 数据</p>
-
-        {/* 调试按钮 */}
-        <div style={{ marginTop: '1rem' }}>
-          <button
-            onClick={() => router.back()}
-            style={styles.debugButton}
-          >
-            ← 返回测试
-          </button>
-          <button
-            onClick={() => window.location.reload()}
-            style={styles.debugButton}
-          >
-            🔄 重新加载
-          </button>
-        </div>
       </div>
     </main>
   )

@@ -2,6 +2,7 @@
 import { type NextRequest, NextResponse } from 'next/server'
 
 export const config = {
+  runtime: 'edge', // req.geo 仅在 Edge Runtime 中可用
   matcher: '/',
 }
 
@@ -50,43 +51,6 @@ export default function middleware(req: any) {
     city = vercelCity || 'Unknown'
     detectionMethod = 'vercel-headers'
     console.log('✅ 使用 Vercel 头部数据')
-  }
-  // 策略 3: 查询参数强制覆盖 (测试和开发用)
-  else if (req.nextUrl.searchParams.get('force-country')) {
-    country = req.nextUrl.searchParams.get('force-country').toUpperCase()
-    detectionMethod = 'query-param'
-    console.log('🧪 使用查询参数强制设置:', country)
-  }
-  // 策略 4: Cookie 存储的用户偏好
-  else if (req.cookies.get('user-country-preference')?.value) {
-    country = req.cookies.get('user-country-preference').value
-    detectionMethod = 'cookie-preference'
-    console.log('👤 使用用户保存的地区偏好:', country)
-  }
-  // 策略 5: 浏览器语言推断 (开发环境和备用方案)
-  else {
-    const acceptLanguage = req.headers.get('accept-language')
-    console.log('浏览器语言:', acceptLanguage)
-    
-    if (acceptLanguage) {
-      if (acceptLanguage.includes('zh')) {
-        country = 'CN'
-        detectionMethod = 'browser-language-zh'
-      } else if (acceptLanguage.includes('ja')) {
-        country = 'JP'
-        detectionMethod = 'browser-language-ja'
-      } else if (acceptLanguage.includes('ko')) {
-        country = 'KR'
-        detectionMethod = 'browser-language-ko'
-      } else if (acceptLanguage.includes('de')) {
-        country = 'DE'
-        detectionMethod = 'browser-language-de'
-      } else {
-        country = 'US'
-        detectionMethod = 'browser-language-en'
-      }
-    }
-    console.log('🌐 使用浏览器语言推断:', country)
   }
   
   console.log(`🎯 最终检测结果: ${country} (检测方法: ${detectionMethod})`)
