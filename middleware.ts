@@ -1,75 +1,164 @@
-// middleware.js - 使用 Vercel request.geo 获取国家信息
+// middleware.js - 修复本地开发和字符编码问题
 import { type NextRequest, NextResponse } from 'next/server'
 
-// only run middleware on home page
 export const config = {
   matcher: '/',
 }
 
 export default function middleware(req: any) {
-  // 🎯 使用 Vercel 内置的 geo 信息 (无需额外依赖)
-  const country = req.geo?.country || 'US'  // 如: "CN", "JP", "US"
-  const city = req.geo?.city || 'Unknown'
-  const region = req.geo?.region || 'Unknown'
-
-  console.log(`🌍 检测到地理位置: 国家=${country}, 城市=${city}, 地区=${region}`)
-  console.log('req.geo:', req.geo);
-
+  console.log('=== Middleware 调试信息 ===')
+  console.log('环境变量 NODE_ENV:', process.env.NODE_ENV)
+  console.log('请求的 IP:', req.ip || req.headers.get('x-forwarded-for'))
+  console.log('Host:', req.headers.get('host'))
+  
+  // 🎯 判断是否为本地开发环境
+  const isDevelopment = process.env.NODE_ENV === 'development' || 
+                       req.headers.get('host')?.includes('localhost') ||
+                       req.headers.get('host')?.includes('127.0.0.1')
+  
+  console.log('是否为开发环境:', isDevelopment)
+  
+  // 🎯 详细的 geo 信息检查
+  console.log('req.geo 存在:', !!req.geo)
+  if (req.geo) {
+    console.log('req.geo 完整对象:', JSON.stringify(req.geo, null, 2))
+  }
+  
+  // 🎯 检查 Vercel 特定的头部信息
+  const vercelCountry = req.headers.get('x-vercel-ip-country')
+  const vercelCity = req.headers.get('x-vercel-ip-city')
+  console.log('x-vercel-ip-country:', vercelCountry)
+  console.log('x-vercel-ip-city:', vercelCity)
+  
+  // 🎯 获取地理位置信息（多源策略）
+  let country = 'US'
+  let city = 'Unknown'
+  let region = 'Unknown'
+  let detectionMethod = 'default'
+  
+  // 策略 1: Vercel Geo (仅在生产环境)
+  if (!isDevelopment && req.geo?.country) {
+    country = req.geo.country
+    city = req.geo.city || 'Unknown'
+    region = req.geo.region || 'Unknown'
+    detectionMethod = 'vercel-geo'
+    console.log('✅ 使用 Vercel Geo 数据')
+  }
+  // 策略 2: Vercel 头部信息 (仅在生产环境)
+  else if (!isDevelopment && vercelCountry) {
+    country = vercelCountry || 'US'
+    city = vercelCity || 'Unknown'
+    detectionMethod = 'vercel-headers'
+    console.log('✅ 使用 Vercel 头部数据')
+  }
+  // 策略 3: 查询参数强制覆盖 (测试和开发用)
+  else if (req.nextUrl.searchParams.get('force-country')) {
+    country = req.nextUrl.searchParams.get('force-country').toUpperCase()
+    detectionMethod = 'query-param'
+    console.log('🧪 使用查询参数强制设置:', country)
+  }
+  // 策略 4: Cookie 存储的用户偏好
+  else if (req.cookies.get('user-country-preference')?.value) {
+    country = req.cookies.get('user-country-preference').value
+    detectionMethod = 'cookie-preference'
+    console.log('👤 使用用户保存的地区偏好:', country)
+  }
+  // 策略 5: 浏览器语言推断 (开发环境和备用方案)
+  else {
+    const acceptLanguage = req.headers.get('accept-language')
+    console.log('浏览器语言:', acceptLanguage)
+    
+    if (acceptLanguage) {
+      if (acceptLanguage.includes('zh')) {
+        country = 'CN'
+        detectionMethod = 'browser-language-zh'
+      } else if (acceptLanguage.includes('ja')) {
+        country = 'JP'
+        detectionMethod = 'browser-language-ja'
+      } else if (acceptLanguage.includes('ko')) {
+        country = 'KR'
+        detectionMethod = 'browser-language-ko'
+      } else if (acceptLanguage.includes('de')) {
+        country = 'DE'
+        detectionMethod = 'browser-language-de'
+      } else {
+        country = 'US'
+        detectionMethod = 'browser-language-en'
+      }
+    }
+    console.log('🌐 使用浏览器语言推断:', country)
+  }
+  
+  console.log(`🎯 最终检测结果: ${country} (检测方法: ${detectionMethod})`)
+  
   // 🎯 根据国家代码设置本地化内容
   let locale = 'en'
-  let greet = 'Hello!, we could not detect your locale so we defaulted to english.'
-  let subtitle = 'Localized text based on geolocation headers'
-
-  // 根据国家设置内容
+  // 🔧 修复：使用 ASCII 字符的字符串，避免 Header 编码问题
+  let greetKey = 'en_default'
+  let subtitleKey = 'en_subtitle'
+  
+  // 使用键值对而不是直接的中文字符串
   switch (country) {
     case 'CN':  // 中国
       locale = 'zh'
-      greet = '你好！我们检测到您在中国，已为您显示中文内容。'
-      subtitle = '基于地理位置的智能内容分发'
+      greetKey = 'zh_greet'
+      subtitleKey = 'zh_subtitle'
       break
     case 'JP':  // 日本
       locale = 'ja'
-      greet = 'こんにちは！日本からのアクセスを検出しました。'
-      subtitle = '地理位置ヘッダーに基づくローカライズされたテキスト'
+      greetKey = 'ja_greet'
+      subtitleKey = 'ja_subtitle'
       break
     case 'US':  // 美国
       locale = 'en'
-      greet = 'Hello! We detected you are in the United States.'
-      subtitle = 'Localized text based on geolocation headers'
+      greetKey = 'en_greet'
+      subtitleKey = 'en_subtitle'
       break
     case 'KR':  // 韩国
       locale = 'ko'
-      greet = '안녕하세요! 한국에서 접속을 감지했습니다.'
-      subtitle = '지리적 위치 기반의 지능형 콘텐츠 배포'
+      greetKey = 'ko_greet'
+      subtitleKey = 'ko_subtitle'
       break
     case 'DE':  // 德国
       locale = 'de'
-      greet = 'Hallo! Wir haben erkannt, dass Sie sich in Deutschland befinden.'
-      subtitle = 'Intelligente Inhaltsverteilung basierend auf Geolokalisierung'
+      greetKey = 'de_greet'
+      subtitleKey = 'de_subtitle'
       break
     default:    // 其他国家默认英语
       locale = 'en'
-      greet = 'Hello!, we could not detect your locale so we defaulted to english.'
-      subtitle = 'Localized text based on geolocation headers'
+      greetKey = 'en_default'
+      subtitleKey = 'en_subtitle'
   }
-
+  
   // 🎯 重写 URL 到本地化页面
-  // 格式: /en/us, /zh/cn, /ja/jp
   const normalizedCountry = country.toLowerCase()
   req.nextUrl.pathname = `/${locale}/${normalizedCountry}`
-
-  console.log('req.nextUrl:', req.nextUrl);
-
-  // 🎯 创建响应并设置自定义 Header
+  
+  console.log('重写到路径:', req.nextUrl.pathname)
+  
+  // 🎯 创建响应
   const response = NextResponse.rewrite(req.nextUrl)
-
-  // // 设置自定义 Header，供前端页面使用
+  
+  // 🔧 修复：只设置 ASCII 字符的 Header，避免编码问题
   response.headers.set('x-detected-country', country)
   response.headers.set('x-detected-city', city)
   response.headers.set('x-detected-region', region)
   response.headers.set('x-locale', locale)
-  response.headers.set('x-greeting', greet)
-  response.headers.set('x-subtitle', subtitle)
-
+  response.headers.set('x-detection-method', detectionMethod)
+  response.headers.set('x-greet-key', greetKey)      // 使用键值
+  response.headers.set('x-subtitle-key', subtitleKey) // 使用键值
+  response.headers.set('x-is-development', isDevelopment.toString())
+  
+  // 🧪 开发环境：设置 Cookie 以便测试
+  if (isDevelopment && req.nextUrl.searchParams.get('set-cookie')) {
+    response.cookies.set('user-country-preference', country, { 
+      maxAge: 60 * 60 * 24, // 24小时
+      httpOnly: false,
+      sameSite: 'lax'
+    })
+    console.log('🍪 设置测试 Cookie:', country)
+  }
+  
+  console.log('=== Middleware 执行完成 ===')
   return response
 }

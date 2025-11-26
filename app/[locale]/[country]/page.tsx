@@ -14,6 +14,8 @@ interface Content {
 
 export default function LocalizedContent() {
   const params = useParams()
+  console.log('params:', params);
+  
   const searchParams = useSearchParams()
   const router = useRouter()
   const [content, setContent] = useState<Content>({
