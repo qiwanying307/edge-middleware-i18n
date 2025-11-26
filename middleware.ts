@@ -13,8 +13,8 @@ export default function middleware(req: any) {
   const region = req.geo?.region || 'Unknown'
 
   console.log(`🌍 检测到地理位置: 国家=${country}, 城市=${city}, 地区=${region}`)
-  console.log('req.geo:',  req.geo);
-  
+  console.log('req.geo:', req.geo);
+
   // 🎯 根据国家代码设置本地化内容
   let locale = 'en'
   let greet = 'Hello!, we could not detect your locale so we defaulted to english.'
@@ -59,17 +59,17 @@ export default function middleware(req: any) {
   req.nextUrl.pathname = `/${locale}/${normalizedCountry}`
 
   console.log('req.nextUrl:', req.nextUrl);
-  
+
   // 🎯 创建响应并设置自定义 Header
   const response = NextResponse.rewrite(req.nextUrl)
 
   // // 设置自定义 Header，供前端页面使用
-  // response.headers.set('x-detected-country', country)
-  // response.headers.set('x-detected-city', city)
-  // response.headers.set('x-detected-region', region)
-  // response.headers.set('x-locale', locale)
-  // response.headers.set('x-greeting', greet)
-  // response.headers.set('x-subtitle', subtitle)
-  
+  response.headers.set('x-detected-country', country)
+  response.headers.set('x-detected-city', city)
+  response.headers.set('x-detected-region', region)
+  response.headers.set('x-locale', locale)
+  response.headers.set('x-greeting', greet)
+  response.headers.set('x-subtitle', subtitle)
+
   return response
 }

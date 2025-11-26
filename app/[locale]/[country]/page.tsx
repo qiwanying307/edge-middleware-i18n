@@ -28,7 +28,7 @@ export default function LocalizedContent() {
     const country = typeof params.country === 'string' ? params.country.toUpperCase() : 'US'
     const locale = typeof params.locale === 'string' ? params.locale : 'en'
 
-    console.log(` 显示本地化内容: ${locale}/${country}`)
+    console.log(`显示本地化内容: ${locale}/${country}`)
 
     // 🎯 定义内容映射
     const contentMap: Record<string, Omit<Content, 'title' | 'link'>> = {
